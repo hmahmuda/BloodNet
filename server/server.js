@@ -11,6 +11,17 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+// Routes
+const authRoutes = require('./routes/authRoutes')
+const donorRoutes = require('./routes/donorRoutes')
+const bloodRequestRoutes = require('./routes/bloodRequestRoutes')
+const adminRoutes = require('./routes/adminRoutes')
+
+app.use('/api/auth', authRoutes)
+app.use('/api/donors', donorRoutes)
+app.use('/api/requests', bloodRequestRoutes)
+app.use('/api/admin', adminRoutes)
+
 // Test route
 app.get('/', (req, res) => {
   res.json({ message: 'BloodNet API is running! 🩸' })

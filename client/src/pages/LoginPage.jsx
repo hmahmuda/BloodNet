@@ -19,7 +19,8 @@ const LoginPage = () => {
       const loggedInUser = await login(form.email, form.password)
       if (!loggedInUser) return
       if (loggedInUser.role === 'admin') navigate('/admin')
-      else navigate('/dashboard')
+      else if (loggedInUser.role === 'requester') navigate('/dashboard/patient')
+      else navigate('/dashboard/donor')
     } catch (error) {
       toast.error(error.response?.data?.message || 'Login failed')
     } finally {

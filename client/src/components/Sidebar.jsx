@@ -15,11 +15,19 @@ const Sidebar = () => {
   const isActive = (path) => location.pathname === path
 
   const donorLinks = [
-    { path: '/dashboard',      icon: <FaHome size={14}/>,          label: 'Dashboard' },
+    { path: '/dashboard/donor', icon: <FaHome size={14}/>,          label: 'Dashboard' },
     { path: '/search',         icon: <FaSearch size={14}/>,        label: 'Find Donors' },
     { path: '/requests',       icon: <FaClipboardList size={14}/>, label: 'Blood Requests', dot: true },
     { path: '/notifications',  icon: <FaBell size={14}/>,          label: 'Notifications', dot: true },
     { path: '/profile',        icon: <FaUser size={14}/>,          label: 'My Profile' },
+  ]
+
+  const patientLinks = [
+    { path: '/dashboard/patient', icon: <FaHome size={14}/>,          label: 'Dashboard' },
+    { path: '/search',            icon: <FaSearch size={14}/>,        label: 'Find Donors' },
+    { path: '/requests',          icon: <FaClipboardList size={14}/>, label: 'Create Request', dot: true },
+    { path: '/notifications',     icon: <FaBell size={14}/>,          label: 'Notifications', dot: true },
+    { path: '/profile',           icon: <FaUser size={14}/>,          label: 'My Profile' },
   ]
 
   const adminLinks = [
@@ -29,7 +37,11 @@ const Sidebar = () => {
     { path: '/admin/inventory', icon: <FaBoxes size={14}/>,        label: 'Inventory' },
   ]
 
-  const links = user?.role === 'admin' ? adminLinks : donorLinks
+  const links = user?.role === 'admin'
+    ? adminLinks
+    : user?.role === 'requester'
+      ? patientLinks
+      : donorLinks
 
   return (
     <div style={{
@@ -69,7 +81,7 @@ const Sidebar = () => {
       {/* Role label */}
       <div style={{ padding: '12px 16px 4px' }}>
         <div style={{ fontSize: '10px', fontWeight: '700', color: 'rgba(255,255,255,0.35)', letterSpacing: '.1em', textTransform: 'uppercase' }}>
-          {user?.role === 'admin' ? '⚙️ Admin Portal' : '🩸 Donor Portal'}
+          {user?.role === 'admin' ? '⚙️ Admin Portal' : user?.role === 'requester' ? '🏥 Patient Portal' : '🩸 Donor Portal'}
         </div>
       </div>
 

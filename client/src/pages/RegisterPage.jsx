@@ -97,7 +97,9 @@ const RegisterPage = () => {
       })
 
       if (!registeredUser) return
-      navigate(registeredUser.role === 'admin' ? '/admin' : '/dashboard')
+      if (registeredUser.role === 'admin') navigate('/admin')
+      else if (registeredUser.role === 'requester') navigate('/dashboard/patient')
+      else navigate('/dashboard/donor')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed')
     } finally {
@@ -224,6 +226,8 @@ const RegisterPage = () => {
 
         <div style={{ fontSize: '11px', color: '#4B5563' }}>
           Already have an account? <Link to="/login" style={{ color: '#7f1d1d', fontWeight: '700' }}>Login here</Link>
+          {' · '}
+          <Link to="/" style={{ color: '#7f1d1d', fontWeight: '700' }}>Back to Home</Link>
         </div>
       </div>
 

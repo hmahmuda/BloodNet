@@ -2,6 +2,37 @@ const BloodRequest = require('../models/BloodRequest')
 const Donor = require('../models/Donor')
 const Notification = require('../models/Notification')
 
+const recordDonationForAcceptedDonor = async (bloodRequest) => {
+  const acceptedDonorResponse = bloodRequest.respondedDonors.find(
+    (response) => response.response === 'Accepted'
+  )
+
+  if (!acceptedDonorResponse?.donor) return
+
+  const donor = await Donor.findById(acceptedDonorResponse.donor)
+  if (!donor) return
+
+  const alreadyRecorded = donor.donationHistory.some(
+    (entry) => entry.bloodRequest && entry.bloodRequest.toString() === bloodRequest._id.toString()
+  )
+
+  if (alreadyRecorded) return
+
+  donor.donationHistory.push({
+    date: new Date(),
+    hospital: bloodRequest.hospital,
+    bloodGroup: bloodRequest.bloodGroup,
+    notes: `Auto-recorded from fulfilled request: ${bloodRequest.patientName}`,
+    bloodRequest: bloodRequest._id
+  })
+
+  donor.lastDonationDate = new Date()
+  donor.totalDonations += 1
+  donor.isAvailable = false
+
+  await donor.save()
+}
+
 // CREATE a blood request + send alerts to matching donors
 const createBloodRequest = async (req, res) => {
   try {
@@ -206,8 +237,13 @@ const updateRequestStatus = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' })
     }
 
+    const previousStatus = bloodRequest.status
     bloodRequest.status = status
     await bloodRequest.save()
+
+    if (status === 'Fulfilled' && previousStatus !== 'Fulfilled') {
+      await recordDonationForAcceptedDonor(bloodRequest)
+    }
 
     res.status(200).json({
       message: `Request marked as ${status}`,

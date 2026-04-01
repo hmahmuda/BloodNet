@@ -8,7 +8,8 @@ import {
   FaTint, FaHeartbeat, FaCalendarAlt, FaAward,
   FaToggleOn, FaToggleOff, FaPhone, FaMapMarkerAlt,
   FaCheckCircle, FaTimesCircle, FaHospital,
-  FaArrowRight, FaUserFriends, FaBell
+  FaArrowRight, FaUserFriends, FaBell,
+  FaMedal, FaExclamationTriangle, FaClipboardList, FaUser
 } from 'react-icons/fa'
 
 const DonorDashboard = () => {
@@ -18,9 +19,29 @@ const DonorDashboard = () => {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
   const [toggling, setToggling] = useState(false)
+  const [nowTick, setNowTick] = useState(Date.now())
 
   useEffect(() => {
     fetchAll()
+
+    const refreshInterval = setInterval(() => {
+      fetchAll()
+    }, 30000)
+
+    const tickInterval = setInterval(() => {
+      setNowTick(Date.now())
+    }, 60000)
+
+    const refreshOnFocus = () => fetchAll()
+    window.addEventListener('focus', refreshOnFocus)
+    document.addEventListener('visibilitychange', refreshOnFocus)
+
+    return () => {
+      clearInterval(refreshInterval)
+      clearInterval(tickInterval)
+      window.removeEventListener('focus', refreshOnFocus)
+      document.removeEventListener('visibilitychange', refreshOnFocus)
+    }
   }, [])
 
   const fetchAll = async () => {
@@ -64,16 +85,20 @@ const DonorDashboard = () => {
   }
 
   const getDonorLevel = (donations) => {
-    if (donations >= 20) return { label: 'Platinum', color: '#6b7280', emoji: '💎' }
-    if (donations >= 10) return { label: 'Gold', color: '#92400e', emoji: '🥇' }
-    if (donations >= 5)  return { label: 'Silver', color: '#374151', emoji: '🥈' }
-    return { label: 'Bronze', color: '#7f1d1d', emoji: '🥉' }
+    if (donations >= 20) return { label: 'Platinum', color: '#6b7280', icon: <FaMedal size={11}/> }
+    if (donations >= 10) return { label: 'Gold', color: '#92400e', icon: <FaMedal size={11}/> }
+    if (donations >= 5)  return { label: 'Silver', color: '#374151', icon: <FaMedal size={11}/> }
+    return { label: 'Bronze', color: '#7f1d1d', icon: <FaMedal size={11}/> }
   }
 
   const emergencyRequests = requests.filter(r =>
     r.urgencyLevel === 'Emergency' &&
     r.bloodGroup === user?.bloodGroup
   )
+
+  const daysSinceLastDonation = donorProfile?.lastDonationDate
+    ? Math.floor((nowTick - new Date(donorProfile.lastDonationDate)) / (1000 * 60 * 60 * 24))
+    : null
 
   if (loading) return (
     <DashboardLayout title="Donor Dashboard" subtitle="Track your donation journey">
@@ -111,8 +136,9 @@ const DonorDashboard = () => {
             <FaTint color="#fff" size={16}/>
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '14px', fontWeight: '800', color: '#7F1D1D', marginBottom: '2px' }}>
-              🚨 Emergency! {emergencyRequests.length} urgent request(s) matching your blood group {user?.bloodGroup}
+            <div style={{ fontSize: '14px', fontWeight: '800', color: '#7F1D1D', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <FaExclamationTriangle size={12}/>
+              Emergency! {emergencyRequests.length} urgent request(s) matching your blood group {user?.bloodGroup}
             </div>
             <div style={{ fontSize: '12px', color: '#4B5563' }}>
               {emergencyRequests[0]?.hospital} · {emergencyRequests[0]?.upazila}
@@ -142,8 +168,8 @@ const DonorDashboard = () => {
           <div style={{ fontSize: '12px', color: '#4B5563', marginBottom: '4px' }}>
             স্বাগতম, Welcome back
           </div>
-          <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#7F1D1D', marginBottom: '6px' }}>
-            {user?.name} 👋
+          <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#7F1D1D', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {user?.name} <FaUserFriends size={18}/>
           </h2>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{
@@ -156,8 +182,8 @@ const DonorDashboard = () => {
             <span style={{ fontSize: '12px', color: '#4B5563' }}>
               <FaMapMarkerAlt size={10}/> {user?.upazila}
             </span>
-            <span style={{ fontSize: '12px', color: '#4B5563' }}>
-              {level.emoji} {level.label} Donor
+            <span style={{ fontSize: '12px', color: '#4B5563', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ color: level.color, display: 'inline-flex', alignItems: 'center' }}>{level.icon}</span> {level.label} Donor
             </span>
           </div>
         </div>
@@ -216,7 +242,7 @@ const DonorDashboard = () => {
           {
             icon: <FaCalendarAlt size={18}/>,
             num: donorProfile?.lastDonationDate
-              ? `${Math.floor((new Date() - new Date(donorProfile.lastDonationDate)) / (1000 * 60 * 60 * 24))}d`
+              ? `${daysSinceLastDonation}d`
               : 'N/A',
             label: 'Days since last',
             sub: 'শেষ দান',
@@ -266,7 +292,7 @@ const DonorDashboard = () => {
           }}>
             <div>
               <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D' }}>
-                🩸 Blood Requests
+                <FaTint size={13} style={{ marginRight: '6px' }}/> Blood Requests
               </div>
               <div style={{ fontSize: '11px', color: '#4B5563', fontStyle: 'italic' }}>
                 রক্তের অনুরোধ
@@ -350,7 +376,7 @@ const DonorDashboard = () => {
           }}>
             <div>
               <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D' }}>
-                🔔 Notifications
+                <FaBell size={13} style={{ marginRight: '6px' }}/> Notifications
               </div>
               <div style={{ fontSize: '11px', color: '#4B5563', fontStyle: 'italic' }}>
                 বিজ্ঞপ্তি
@@ -407,7 +433,7 @@ const DonorDashboard = () => {
           borderRadius: '14px', padding: '24px', marginBottom: '20px'
         }}>
           <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D', marginBottom: '4px' }}>
-            👤 Donor Profile
+            <FaUser size={13} style={{ marginRight: '6px' }}/> Donor Profile
           </div>
           <div style={{ fontSize: '11px', color: '#4B5563', fontStyle: 'italic', marginBottom: '20px' }}>
             আপনার প্রোফাইল
@@ -446,7 +472,7 @@ const DonorDashboard = () => {
         }}>
           <div>
             <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D' }}>
-              📋 Donation History
+              <FaClipboardList size={13} style={{ marginRight: '6px' }}/> Donation History
             </div>
             <div style={{ fontSize: '11px', color: '#4B5563', fontStyle: 'italic' }}>
               রক্তদানের ইতিহাস

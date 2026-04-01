@@ -75,28 +75,28 @@ const SearchDonors = () => {
 
       {/* ── HERO HEADER ── */}
       <section style={{
-        background: 'linear-gradient(135deg, #7F1D1D 0%, #DC2626 100%)',
+        background: 'linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)',
         padding: '48px 24px 80px',
         textAlign: 'center'
       }}>
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '8px',
-            background: 'rgba(255,255,255,0.15)',
-            border: '1px solid rgba(255,255,255,0.25)',
-            color: '#FECACA', padding: '5px 14px',
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            color: '#DC2626', padding: '5px 14px',
             borderRadius: '99px', fontSize: '12px', fontWeight: '600',
             marginBottom: '16px'
           }}>
             <FaSearch size={11}/> Donor Search
           </div>
-          <h1 style={{ fontSize: '36px', fontWeight: '900', color: '#FFFFFF', marginBottom: '10px' }}>
+          <h1 style={{ fontSize: '36px', fontWeight: '900', color: '#7F1D1D', marginBottom: '10px' }}>
             Find Blood Donors
           </h1>
-          <div style={{ fontSize: '16px', fontStyle: 'italic', color: 'rgba(255,255,255,0.8)', marginBottom: '6px' }}>
+          <div style={{ fontSize: '16px', fontStyle: 'italic', color: '#000000', marginBottom: '6px' }}>
             রক্তদাতা খুঁজুন
           </div>
-          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginBottom: '0' }}>
+          <p style={{ fontSize: '14px', color: '#000000', marginBottom: '0' }}>
             Search available donors across all 13 upazilas of Sylhet by blood group and location
           </p>
         </div>

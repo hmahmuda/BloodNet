@@ -64,7 +64,7 @@ const Navbar = () => {
                 padding: '8px 20px', borderRadius: '8px',
                 fontSize: '13px', fontWeight: '700', textDecoration: 'none'
               }}>
-                Register as Donor
+                Register
               </Link>
             </>
           )}

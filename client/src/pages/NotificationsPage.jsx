@@ -45,7 +45,7 @@ const NotificationsPage = () => {
   const handleRespond = async (requestId, response) => {
     try {
       await API.put(`/requests/${requestId}/respond`, { response })
-      toast.success(`You have ${response} this request 🩸`)
+      toast.success(`You have ${response} this blood request`)
       fetchNotifications()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to respond')
@@ -63,10 +63,13 @@ const NotificationsPage = () => {
   }
 
   const getNotifIcon = (type) => {
-    if (type === 'blood_request')    return { emoji: '🩸', bg: '#FEF2F2', border: '#FECACA' }
-    if (type === 'request_accepted') return { emoji: '✅', bg: '#DCFCE7', border: '#86EFAC' }
-    if (type === 'request_fulfilled')return { emoji: '🎉', bg: '#DCFCE7', border: '#86EFAC' }
-    return { emoji: '🔔', bg: '#FEF2F2', border: '#FECACA' }
+    if (type === 'blood_request') {
+      return { icon: <FaTint size={18} color="#DC2626"/>, bg: '#FEF2F2', border: '#FECACA' }
+    }
+    if (type === 'request_accepted' || type === 'request_fulfilled') {
+      return { icon: <FaCheckCircle size={18} color="#166534"/>, bg: '#DCFCE7', border: '#86EFAC' }
+    }
+    return { icon: <FaBell size={18} color="#DC2626"/>, bg: '#FEF2F2', border: '#FECACA' }
   }
 
   const unreadCount  = notifications.filter(n => !n.isRead).length
@@ -84,23 +87,25 @@ const NotificationsPage = () => {
 
       {/* ── HEADER CARD ── */}
       <div style={{
-        background: 'linear-gradient(135deg, #7F1D1D, #DC2626)',
+        background: 'linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)',
+        border: '1px solid #FECACA',
         borderRadius: '14px', padding: '24px 28px',
         display: 'flex', justifyContent: 'space-between',
         alignItems: 'center', marginBottom: '20px',
         flexWrap: 'wrap', gap: '16px'
       }}>
         <div>
-          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px', fontStyle: 'italic' }}>
+          <div style={{ fontSize: '12px', color: '#4B5563', marginBottom: '4px', fontStyle: 'italic' }}>
             বিজ্ঞপ্তি কেন্দ্র
           </div>
-          <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#FFFFFF', marginBottom: '6px' }}>
-            🔔 Notification Center
+          <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#7F1D1D', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FaBell size={18}/> Notification Center
           </h2>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <span style={{
-              background: 'rgba(255,255,255,0.15)',
-              color: '#FFFFFF', padding: '3px 12px',
+              background: '#FFFFFF',
+              color: '#7F1D1D', padding: '3px 12px',
+              border: '1px solid #FECACA',
               borderRadius: '99px', fontSize: '12px', fontWeight: '700'
             }}>
               {notifications.length} total
@@ -120,9 +125,9 @@ const NotificationsPage = () => {
         {unreadCount > 0 && (
           <button onClick={markAllRead} disabled={marking} style={{
             display: 'flex', alignItems: 'center', gap: '8px',
-            background: 'rgba(255,255,255,0.15)',
-            color: '#FFFFFF',
-            border: '1.5px solid rgba(255,255,255,0.3)',
+            background: '#FFFFFF',
+            color: '#DC2626',
+            border: '1.5px solid #FECACA',
             padding: '10px 20px', borderRadius: '10px',
             fontSize: '13px', fontWeight: '700', cursor: 'pointer'
           }}>
@@ -251,10 +256,9 @@ const NotificationsPage = () => {
                     border: `1px solid ${style.border}`,
                     borderRadius: '50%',
                     display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', flexShrink: 0,
-                    fontSize: '20px'
+                    justifyContent: 'center', flexShrink: 0
                   }}>
-                    {style.emoji}
+                    {style.icon}
                   </div>
 
                   {/* Content */}
@@ -314,18 +318,20 @@ const NotificationsPage = () => {
                           background: '#DCFCE7', color: '#166534',
                           border: '1px solid #86EFAC',
                           padding: '2px 10px', borderRadius: '99px',
-                          fontSize: '11px', fontWeight: '600'
+                          fontSize: '11px', fontWeight: '600',
+                          display: 'inline-flex', alignItems: 'center', gap: '5px'
                         }}>
-                          ✓ Read
+                          <FaCheck size={10}/> Read
                         </span>
                       ) : (
                         <span style={{
                           background: '#FEF2F2', color: '#DC2626',
                           border: '1px solid #FECACA',
                           padding: '2px 10px', borderRadius: '99px',
-                          fontSize: '11px', fontWeight: '700'
+                          fontSize: '11px', fontWeight: '700',
+                          display: 'inline-flex', alignItems: 'center', gap: '5px'
                         }}>
-                          ● Unread
+                          <FaBell size={9}/> Unread
                         </span>
                       )}
                     </div>

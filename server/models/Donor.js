@@ -45,7 +45,12 @@ const donorSchema = new mongoose.Schema({
       date: { type: Date },
       hospital: { type: String },
       bloodGroup: { type: String },
-      notes: { type: String }
+      notes: { type: String },
+      bloodRequest: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'BloodRequest',
+        default: null
+      }
     }
   ],
   weight: {

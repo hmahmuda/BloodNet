@@ -17,7 +17,7 @@ const Topbar = ({ title, subtitle }) => {
           <FaTint style={{ color: '#dc2626' }} size={14}/>
           {title}
         </div>
-        {subtitle && <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px' }}>{subtitle}</div>}
+        {subtitle && <div style={{ fontSize: '11px', color: '#000000', marginTop: '1px' }}>{subtitle}</div>}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

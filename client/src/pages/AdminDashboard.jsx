@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { toast } from 'react-toastify'
 import API from '../utils/api'
@@ -7,7 +8,8 @@ import {
   FaTint, FaUserFriends, FaClipboardList,
   FaBoxes, FaCheckCircle, FaTimesCircle,
   FaExclamationTriangle, FaToggleOn, FaToggleOff,
-  FaHospital, FaMapMarkerAlt, FaSync, FaPlus
+  FaHospital, FaMapMarkerAlt, FaSync, FaPlus,
+  FaChartBar, FaCog
 } from 'react-icons/fa'
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
@@ -27,6 +29,8 @@ const HOSPITALS = [
 
 const AdminDashboard = () => {
   const { user } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [stats, setStats]           = useState(null)
   const [users, setUsers]           = useState([])
   const [requests, setRequests]     = useState([])
@@ -41,6 +45,31 @@ const AdminDashboard = () => {
   })
 
   useEffect(() => { fetchAll() }, [])
+
+  useEffect(() => {
+    if (location.pathname === '/admin/users') {
+      setActiveTab('users')
+      return
+    }
+    if (location.pathname === '/admin/requests') {
+      setActiveTab('requests')
+      return
+    }
+    if (location.pathname === '/admin/inventory') {
+      setActiveTab('inventory')
+      return
+    }
+    setActiveTab('overview')
+  }, [location.pathname])
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab)
+    if (tab === 'overview') {
+      navigate('/admin')
+      return
+    }
+    navigate(`/admin/${tab}`)
+  }
 
   const fetchAll = async () => {
     setLoading(true)
@@ -102,6 +131,16 @@ const AdminDashboard = () => {
     return { bg: '#FEF3C7', color: '#92400E', border: '#FCD34D' }
   }
 
+  const getStatusIcon = (status) => {
+    if (status === 'Fulfilled' || status === 'Accepted' || status === 'Available' || status === 'Active') {
+      return <FaCheckCircle size={11} />
+    }
+    if (status === 'Cancelled' || status === 'Inactive' || status === 'Critical' || status === 'Expired') {
+      return <FaTimesCircle size={11} />
+    }
+    return <FaExclamationTriangle size={11} />
+  }
+
   const getInvStyle = (status) => {
     if (status === 'Available') return { bg: '#DCFCE7', color: '#166534', border: '#86EFAC' }
     if (status === 'Low')       return { bg: '#FEF3C7', color: '#92400E', border: '#FCD34D' }
@@ -120,10 +159,10 @@ const AdminDashboard = () => {
   const focusOut = e => { e.target.style.borderColor = '#FECACA'; e.target.style.boxShadow = 'none' }
 
   const tabs = [
-    { value: 'overview',  label: '📊 Overview',  count: null },
-    { value: 'users',     label: '👥 Donors',    count: users.length },
-    { value: 'requests',  label: '🩸 Requests',  count: requests.length },
-    { value: 'inventory', label: '📦 Inventory', count: inventory.length }
+    { value: 'overview',  label: 'Overview',  icon: <FaChartBar size={12}/>, count: null },
+    { value: 'users',     label: 'Donors',    icon: <FaUserFriends size={12}/>, count: users.length },
+    { value: 'requests',  label: 'Requests',  icon: <FaTint size={12}/>, count: requests.length },
+    { value: 'inventory', label: 'Inventory', icon: <FaBoxes size={12}/>, count: inventory.length }
   ]
 
   if (loading) return (
@@ -145,24 +184,25 @@ const AdminDashboard = () => {
 
       {/* ── WELCOME BANNER ── */}
       <div style={{
-        background: 'linear-gradient(135deg, #7F1D1D, #DC2626)',
+        background: 'linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)',
+        border: '1px solid #FECACA',
         borderRadius: '14px', padding: '22px 28px',
         display: 'flex', justifyContent: 'space-between',
         alignItems: 'center', marginBottom: '20px',
         flexWrap: 'wrap', gap: '12px'
       }}>
         <div>
-          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '2px', fontStyle: 'italic' }}>
+          <div style={{ fontSize: '12px', color: '#4B5563', marginBottom: '2px', fontStyle: 'italic' }}>
             স্বাগতম — System Administration
           </div>
-          <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#FFFFFF' }}>
-            ⚙️ Admin Panel — {user?.name}
+          <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#7F1D1D', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FaCog size={18}/> Admin Panel — {user?.name}
           </h2>
         </div>
         <button onClick={fetchAll} style={{
           display: 'flex', alignItems: 'center', gap: '8px',
-          background: 'rgba(255,255,255,0.15)',
-          color: '#FFFFFF', border: '1.5px solid rgba(255,255,255,0.3)',
+          background: '#FFFFFF',
+          color: '#DC2626', border: '1.5px solid #FECACA',
           padding: '9px 18px', borderRadius: '8px',
           fontSize: '13px', fontWeight: '700', cursor: 'pointer'
         }}>
@@ -216,8 +256,8 @@ const AdminDashboard = () => {
           borderRadius: '14px', padding: '20px 24px',
           marginBottom: '20px'
         }}>
-          <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D', marginBottom: '4px' }}>
-            🩸 Donor Blood Group Distribution
+          <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FaTint size={16}/> Donor Blood Group Distribution
           </div>
           <div style={{ fontSize: '11px', fontStyle: 'italic', color: '#4B5563', marginBottom: '16px' }}>
             রক্তের গ্রুপ অনুযায়ী দাতার সংখ্যা
@@ -261,7 +301,7 @@ const AdminDashboard = () => {
         padding: '6px', marginBottom: '20px'
       }}>
         {tabs.map((tab) => (
-          <button key={tab.value} onClick={() => setActiveTab(tab.value)} style={{
+          <button key={tab.value} onClick={() => handleTabChange(tab.value)} style={{
             flex: 1, padding: '10px 8px', borderRadius: '8px',
             border: 'none', cursor: 'pointer',
             background: activeTab === tab.value ? '#DC2626' : 'transparent',
@@ -269,7 +309,7 @@ const AdminDashboard = () => {
             fontSize: '13px', fontWeight: '700', transition: 'all .2s',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
           }}>
-            {tab.label}
+            {tab.icon} {tab.label}
             {tab.count !== null && (
               <span style={{
                 background: activeTab === tab.value ? 'rgba(255,255,255,0.25)' : '#FEF2F2',
@@ -298,12 +338,11 @@ const AdminDashboard = () => {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
             {[
-              { icon: '👥', title: 'Manage Donors', desc: 'View, activate or deactivate donor accounts', tab: 'users' },
-              { icon: '🩸', title: 'Manage Requests', desc: 'View all blood requests and update their status', tab: 'requests' },
-              { icon: '📦', title: 'Blood Inventory', desc: 'Track and manage blood stock across hospitals', tab: 'inventory' },
-              { icon: '📊', title: 'View Stats', desc: 'See blood group distribution and monthly trends', tab: 'overview' }
+              { icon: <FaUserFriends size={24} color='#DC2626'/>, title: 'Manage Donors', desc: 'View, activate or deactivate donor accounts', tab: 'users' },
+              { icon: <FaTint size={24} color='#DC2626'/>, title: 'Manage Requests', desc: 'View all blood requests and update their status', tab: 'requests' },
+              { icon: <FaBoxes size={24} color='#DC2626'/>, title: 'Blood Inventory', desc: 'Track and manage blood stock across hospitals', tab: 'inventory' }
             ].map((a) => (
-              <div key={a.title} onClick={() => setActiveTab(a.tab)}
+              <div key={a.title} onClick={() => handleTabChange(a.tab)}
                 style={{
                   background: '#FFF7F8', border: '1px solid #FECACA',
                   borderRadius: '12px', padding: '18px 20px',
@@ -314,7 +353,7 @@ const AdminDashboard = () => {
                 onMouseOut={e => { e.currentTarget.style.borderColor = '#FECACA'; e.currentTarget.style.background = '#FFF7F8' }}
               >
                 <div style={{
-                  fontSize: '24px', width: '44px', height: '44px',
+                  width: '44px', height: '44px',
                   background: '#FEF2F2', borderRadius: '10px',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0
@@ -338,8 +377,8 @@ const AdminDashboard = () => {
           borderRadius: '14px', overflow: 'hidden'
         }}>
           <div style={{ padding: '18px 24px', borderBottom: '1px solid #FEF2F2' }}>
-            <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D', marginBottom: '2px' }}>
-              👥 All Users
+            <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaUserFriends size={14}/> All Users
             </div>
             <div style={{ fontSize: '11px', fontStyle: 'italic', color: '#4B5563' }}>
               সকল ব্যবহারকারী — {users.length} total
@@ -416,9 +455,11 @@ const AdminDashboard = () => {
                         color: u.isActive ? '#166534' : '#DC2626',
                         border: `1px solid ${u.isActive ? '#86EFAC' : '#FECACA'}`,
                         padding: '2px 10px', borderRadius: '99px',
-                        fontSize: '11px', fontWeight: '700'
+                        fontSize: '11px', fontWeight: '700',
+                        display: 'inline-flex', alignItems: 'center', gap: '5px'
                       }}>
-                        {u.isActive ? '✓ Active' : '✗ Inactive'}
+                        {getStatusIcon(u.isActive ? 'Active' : 'Inactive')}
+                        {u.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
@@ -451,8 +492,8 @@ const AdminDashboard = () => {
           borderRadius: '14px', overflow: 'hidden'
         }}>
           <div style={{ padding: '18px 24px', borderBottom: '1px solid #FEF2F2' }}>
-            <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D', marginBottom: '2px' }}>
-              🩸 All Blood Requests
+            <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaTint size={14}/> All Blood Requests
             </div>
             <div style={{ fontSize: '11px', fontStyle: 'italic', color: '#4B5563' }}>
               সকল রক্তের অনুরোধ — {requests.length} total
@@ -515,8 +556,10 @@ const AdminDashboard = () => {
                           background: st.bg, color: st.color,
                           border: `1px solid ${st.border}`,
                           padding: '2px 10px', borderRadius: '99px',
-                          fontSize: '11px', fontWeight: '700'
+                          fontSize: '11px', fontWeight: '700',
+                          display: 'inline-flex', alignItems: 'center', gap: '5px'
                         }}>
+                          {getStatusIcon(req.status)}
                           {req.status}
                         </span>
                       </td>
@@ -555,8 +598,8 @@ const AdminDashboard = () => {
             alignItems: 'center', marginBottom: '16px'
           }}>
             <div>
-              <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D', marginBottom: '2px' }}>
-                📦 Blood Inventory
+              <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FaBoxes size={14}/> Blood Inventory
               </div>
               <div style={{ fontSize: '11px', fontStyle: 'italic', color: '#4B5563' }}>
                 রক্তের মজুদ — Track blood stock across Sylhet hospitals
@@ -582,8 +625,8 @@ const AdminDashboard = () => {
               borderRadius: '14px', padding: '24px',
               marginBottom: '16px'
             }}>
-              <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D', marginBottom: '16px' }}>
-                ➕ Add Blood Stock
+              <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FaPlus size={14}/> Add Blood Stock
               </div>
               <form onSubmit={handleAddInventory}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
@@ -684,8 +727,10 @@ const AdminDashboard = () => {
                             background: st.bg, color: st.color,
                             border: `1px solid ${st.border}`,
                             padding: '3px 10px', borderRadius: '99px',
-                            fontSize: '11px', fontWeight: '700'
+                            fontSize: '11px', fontWeight: '700',
+                            display: 'inline-flex', alignItems: 'center', gap: '5px'
                           }}>
+                            {getStatusIcon(inv.status)}
                             {inv.status}
                           </span>
                         </td>

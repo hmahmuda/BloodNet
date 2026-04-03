@@ -301,5 +301,6 @@ module.exports = {
   respondToRequest,
   updateRequestStatus,
   getMyNotifications,
-  markNotificationsRead
+  markNotificationsRead,
+  recordDonationForAcceptedDonor
 }

@@ -2,6 +2,7 @@ const User = require('../models/User')
 const Donor = require('../models/Donor')
 const BloodRequest = require('../models/BloodRequest')
 const Inventory = require('../models/Inventory')
+const { recordDonationForAcceptedDonor } = require('./bloodRequestController')
 
 // GET dashboard statistics
 const getDashboardStats = async (req, res) => {
@@ -117,18 +118,29 @@ const getAllBloodRequests = async (req, res) => {
 }
 
 // UPDATE any blood request status (admin only)
+const VALID_STATUSES = ['Pending', 'Accepted', 'Fulfilled', 'Cancelled']
+
 const adminUpdateRequestStatus = async (req, res) => {
   try {
     const { status } = req.body
 
-    const request = await BloodRequest.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    )
+    if (!VALID_STATUSES.includes(status)) {
+      return res.status(400).json({ message: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` })
+    }
+
+    const request = await BloodRequest.findById(req.params.id)
 
     if (!request) {
       return res.status(404).json({ message: 'Request not found' })
+    }
+
+    const previousStatus = request.status
+    request.status = status
+    await request.save()
+
+    // Trigger donation recording when admin marks as Fulfilled
+    if (status === 'Fulfilled' && previousStatus !== 'Fulfilled') {
+      await recordDonationForAcceptedDonor(request)
     }
 
     res.status(200).json({
@@ -137,7 +149,7 @@ const adminUpdateRequestStatus = async (req, res) => {
     })
 
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message })
+    res.status(500).json({ message: 'Server error' })
   }
 }
 

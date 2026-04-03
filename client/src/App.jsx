@@ -33,6 +33,28 @@ const AdminRoute = ({ children }) => {
   return user && user.role === 'admin' ? children : <Navigate to="/" />
 }
 
+const DonorRoute = ({ children }) => {
+  const { user, loading } = useAuth()
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <div style={{ color: '#e53e3e', fontSize: '16px', fontWeight: '600' }}>Loading...</div>
+    </div>
+  )
+  if (!user) return <Navigate to="/login" />
+  return user.role === 'donor' ? children : <Navigate to="/dashboard" />
+}
+
+const RequesterRoute = ({ children }) => {
+  const { user, loading } = useAuth()
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <div style={{ color: '#e53e3e', fontSize: '16px', fontWeight: '600' }}>Loading...</div>
+    </div>
+  )
+  if (!user) return <Navigate to="/login" />
+  return user.role === 'requester' ? children : <Navigate to="/dashboard" />
+}
+
 const PublicLayout = ({ children }) => (
   <>
     <Navbar />
@@ -66,8 +88,8 @@ function AppRoutes() {
 
       {/* Protected pages — show sidebar layout */}
       <Route path="/dashboard" element={<RoleDashboardRoute />} />
-      <Route path="/dashboard/donor" element={<ProtectedRoute><DonorDashboard /></ProtectedRoute>} />
-      <Route path="/dashboard/patient" element={<ProtectedRoute><PatientDashboard /></ProtectedRoute>} />
+      <Route path="/dashboard/donor" element={<DonorRoute><DonorDashboard /></DonorRoute>} />
+      <Route path="/dashboard/patient" element={<RequesterRoute><PatientDashboard /></RequesterRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
       {/* Admin pages */}

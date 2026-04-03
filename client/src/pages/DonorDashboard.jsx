@@ -250,7 +250,7 @@ const DonorDashboard = () => {
           },
           {
             icon: <FaAward size={18}/>,
-            num: level.emoji,
+            num: level.label,
             label: `${level.label} level`,
             sub: 'ডোনার লেভেল',
             color: '#7f1d1d', bg: '#fef2f2'

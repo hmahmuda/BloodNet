@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
+import API from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -22,11 +22,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             try {
-                const response = await axios.get('http://localhost:5000/api/auth/me', {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
+                const response = await API.get('/auth/me');
                 setUser(response.data);
             } catch (error) {
                 console.error('Auth verification failed:', error);
@@ -41,10 +37,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const response = await axios.post('http://localhost:5000/api/auth/login', {
-                email,
-                password
-            });
+            const response = await API.post('/auth/login', { email, password });
             localStorage.setItem('token', response.data.token);
             setUser(response.data.user);
             toast.success('Login successful!');
@@ -57,7 +50,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         try {
-            const response = await axios.post('http://localhost:5000/api/auth/register', userData);
+            const response = await API.post('/auth/register', userData);
             localStorage.setItem('token', response.data.token);
             setUser(response.data.user);
             toast.success('Registration successful!');

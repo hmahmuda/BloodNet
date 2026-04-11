@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import API from '../utils/api'
+import { toast } from 'react-toastify'
 import {
   FaSearch, FaTint, FaMapMarkerAlt, FaPhone,
   FaFilter, FaUserFriends, FaAward, FaTimes
@@ -36,8 +37,15 @@ const SearchDonors = () => {
       setDonors(data.donors || [])
       setTotalDonors(data.count || 0)
       setSearched(true)
+      if (data.count === 0) {
+        toast.info('No donors found matching your criteria')
+      }
     } catch (err) {
-      console.log(err)
+      console.error('Search error:', err)
+      toast.error(err.response?.data?.message || 'Error searching for donors')
+      setDonors([])
+      setTotalDonors(0)
+      setSearched(true)
     } finally {
       setLoading(false)
     }
@@ -68,6 +76,17 @@ const SearchDonors = () => {
     if (donations >= 5)  return { label: 'Silver', emoji: '🥈' }
     if (donations >= 1)  return { label: 'Bronze', emoji: '🥉' }
     return null
+  }
+
+  const handleContactDonor = (phone, donorName) => {
+    if (!phone) {
+      toast.error('Phone number not available')
+      return
+    }
+    toast.info(`${donorName}'s phone: ${phone}`, {
+      position: 'top-center',
+      autoClose: false
+    })
   }
 
   return (
@@ -376,27 +395,36 @@ const SearchDonors = () => {
                     <span style={{ fontSize: '12px', color: '#4B5563', fontWeight: '500' }}>
                       Last donation
                     </span>
-                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#7F1D1D' }}>
-                      {getDaysSince(donor.lastDonationDate)}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: '#7F1D1D' }}>
+                        {getDaysSince(donor.lastDonationDate)}
+                      </span>
+                      {donor.lastDonationDate && (
+                        <span style={{ fontSize: '11px', color: '#1F2937', fontWeight: '500' }}>
+                          Date: {new Date(donor.lastDonationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Contact button */}
-                  <a href={`tel:${donor.phone}`} style={{
-                    display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', gap: '8px',
-                    width: '100%', background: '#DC2626',
-                    color: '#FFFFFF', border: 'none',
-                    padding: '11px', borderRadius: '8px',
-                    fontSize: '13px', fontWeight: '700',
-                    textDecoration: 'none', cursor: 'pointer',
-                    transition: 'background .2s'
-                  }}
+                  <button 
+                    onClick={() => handleContactDonor(donor.phone, donor.user?.name)}
+                    style={{
+                      display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', gap: '8px',
+                      width: '100%', background: '#DC2626',
+                      color: '#FFFFFF', border: 'none',
+                      padding: '11px', borderRadius: '8px',
+                      fontSize: '13px', fontWeight: '700',
+                      textDecoration: 'none', cursor: 'pointer',
+                      transition: 'background .2s'
+                    }}
                     onMouseOver={e => e.currentTarget.style.background = '#7F1D1D'}
                     onMouseOut={e => e.currentTarget.style.background = '#DC2626'}
                   >
                     <FaPhone size={12}/> Contact Donor
-                  </a>
+                  </button>
 
                 </div>
               )

@@ -145,10 +145,17 @@ const searchDonors = async (req, res) => {
     const { bloodGroup, upazila } = req.query
 
     // Build the search filter
-    const filter = {}
+    const filter = { isAvailable: true }
 
-    if (bloodGroup) filter.bloodGroup = bloodGroup
-    if (upazila) filter.upazila = upazila
+    // Case-insensitive blood group search
+    if (bloodGroup) {
+      filter.bloodGroup = bloodGroup.toUpperCase()
+    }
+
+    // Case-insensitive upazila search
+    if (upazila) {
+      filter.upazila = { $regex: upazila, $options: 'i' }
+    }
 
     const donors = await Donor.find(filter)
       .populate('user', 'name email')

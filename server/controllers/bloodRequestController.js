@@ -2,6 +2,8 @@ const BloodRequest = require('../models/BloodRequest')
 const Donor = require('../models/Donor')
 const Notification = require('../models/Notification')
 
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 const recordDonationForAcceptedDonor = async (bloodRequest) => {
   const acceptedDonorResponse = bloodRequest.respondedDonors.find(
     (response) => response.response === 'Accepted'
@@ -47,43 +49,57 @@ const createBloodRequest = async (req, res) => {
       additionalNotes
     } = req.body
 
+    const normalizedBloodGroup = typeof bloodGroup === 'string' ? bloodGroup.trim().toUpperCase() : bloodGroup
+    const normalizedUpazila = (typeof upazila === 'string' && upazila.trim().toLowerCase() !== 'all') ? upazila.trim() : ''
+
     // Create the blood request
     const bloodRequest = await BloodRequest.create({
       requester: req.user.id,
-      patientName,
-      bloodGroup,
+      patientName: typeof patientName === 'string' ? patientName.trim() : patientName,
+      bloodGroup: normalizedBloodGroup,
       unitsNeeded,
-      hospital,
-      upazila,
+      hospital: typeof hospital === 'string' ? hospital.trim() : hospital,
+      upazila: normalizedUpazila,
       urgencyLevel,
-      contactNumber,
-      additionalNotes
+      contactNumber: typeof contactNumber === 'string' ? contactNumber.trim() : contactNumber,
+      additionalNotes: typeof additionalNotes === 'string' ? additionalNotes.trim() : additionalNotes
     })
 
-    // Find matching donors whose donation cycle is fulfilled (90-day cooldown)
+    // Auto-restore donors whose 90-day cooldown has passed
     const donationCycleDays = 90
     const cycleDate = new Date(Date.now() - donationCycleDays * 24 * 60 * 60 * 1000)
 
-    const matchingDonors = await Donor.find({
-      bloodGroup,
-      upazila,
-      isAvailable: true,
-      $or: [
-        { lastDonationDate: null },
-        { lastDonationDate: { $lte: cycleDate } }
-      ]
-    }).populate('user')
+    await Donor.updateMany(
+      { isAvailable: false, lastDonationDate: { $ne: null, $lte: cycleDate } },
+      { isAvailable: true }
+    )
+
+    // Notify ALL donors with matching blood group (including ineligible ones)
+    const donorFilter = {
+      bloodGroup: normalizedBloodGroup
+    }
+
+    if (normalizedUpazila) {
+      donorFilter.upazila = {
+        $regex: `^${escapeRegex(normalizedUpazila)}$`,
+        $options: 'i'
+      }
+    }
+
+    const matchingDonors = await Donor.find(donorFilter).populate('user')
 
     // Send notification to each matching donor
-    const notifications = matchingDonors.map(donor => ({
-      recipient: donor.user._id,
-      type: 'blood_request',
-      title: urgencyLevel === 'Emergency'
-        ? '🚨 EMERGENCY Blood Request!'
-        : '🩸 Blood Request in Your Area',
-      message: `${patientName} needs ${unitsNeeded} unit(s) of ${bloodGroup} blood at ${hospital}, ${upazila}. Contact: ${contactNumber}`,
-      bloodRequest: bloodRequest._id
-    }))
+    const notifications = matchingDonors
+      .filter((donor) => donor?.user?._id)
+      .map((donor) => ({
+        recipient: donor.user._id,
+        type: 'blood_request',
+        title: urgencyLevel === 'Emergency'
+          ? '🚨 EMERGENCY Blood Request!'
+          : '🩸 Blood Request in Your Area',
+        message: `${patientName} needs ${unitsNeeded} unit(s) of ${normalizedBloodGroup} blood at ${hospital}, ${normalizedUpazila}. Contact: ${contactNumber}`,
+        bloodRequest: bloodRequest._id
+      }))
 
     if (notifications.length > 0) {
       await Notification.insertMany(notifications)
@@ -114,6 +130,7 @@ const getAllRequests = async (req, res) => {
 
     const requests = await BloodRequest.find(filter)
       .populate('requester', 'name email')
+      .populate('respondedDonors.donor', '_id')
       .sort({ createdAt: -1 })
 
     res.status(200).json({
@@ -180,6 +197,23 @@ const respondToRequest = async (req, res) => {
 
     if (!donor) {
       return res.status(404).json({ message: 'Donor profile not found' })
+    }
+
+    // ISSUE 3 FIX: Validate that donor's blood group EXACTLY matches the request's blood group
+    if (donor.bloodGroup !== bloodRequest.bloodGroup) {
+      return res.status(400).json({ message: 'Your blood group does not match this request' })
+    }
+
+    // 90-day donation cooldown check
+    if (donor.lastDonationDate) {
+      const diffDays = Math.floor(
+        (Date.now() - new Date(donor.lastDonationDate).getTime()) / (1000 * 60 * 60 * 24)
+      )
+      if (diffDays < 90) {
+        return res.status(400).json({
+          message: 'You cannot respond — 90 days have not passed since your last donation'
+        })
+      }
     }
 
     // Check if donor already responded

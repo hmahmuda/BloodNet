@@ -6,7 +6,7 @@ import API from '../utils/api'
 import {
   FaTint, FaHospital, FaMapMarkerAlt, FaPhone,
   FaExclamationTriangle, FaClock, FaCheckCircle,
-  FaArrowRight, FaFilter, FaPlus, FaTimes
+  FaArrowRight, FaFilter, FaPlus, FaTimes, FaTimesCircle
 } from 'react-icons/fa'
 
 const UPAZILAS = [
@@ -35,6 +35,7 @@ const BloodRequestPage = () => {
   const [showForm, setShowForm]       = useState(false)
   const [filterGroup, setFilterGroup] = useState('')
   const [filterUrgency, setFilterUrgency] = useState('')
+  const [donorProfile, setDonorProfile] = useState(null)
 
   const [form, setForm] = useState({
     patientName: '', bloodGroup: '', unitsNeeded: 1,
@@ -42,12 +43,38 @@ const BloodRequestPage = () => {
     contactNumber: '', additionalNotes: ''
   })
 
-  useEffect(() => { fetchRequests() }, [])
+  const isDonor = user?.role === 'donor'
+
+  // Eligibility calculation
+  const daysSinceLastDonation = donorProfile?.lastDonationDate
+    ? Math.floor((Date.now() - new Date(donorProfile.lastDonationDate).getTime()) / (1000 * 60 * 60 * 24))
+    : null
+  const isEligible = daysSinceLastDonation === null || daysSinceLastDonation >= 90
+  const daysUntilEligible = !isEligible ? 90 - daysSinceLastDonation : 0
+
+  useEffect(() => {
+    fetchRequests()
+    if (isDonor) fetchDonorProfile()
+  }, [])
+
+  const fetchDonorProfile = async () => {
+    try {
+      const { data } = await API.get('/donors/profile/me')
+      setDonorProfile(data)
+    } catch (err) {
+      console.log('Could not load donor profile', err)
+    }
+  }
 
   const fetchRequests = async () => {
     setLoading(true)
     try {
-      const { data } = await API.get('/requests?status=Pending')
+      let url = '/requests?status=Pending'
+      // Donors should only see requests matching their blood group
+      if (user?.role === 'donor' && user?.bloodGroup) {
+        url += `&bloodGroup=${encodeURIComponent(user.bloodGroup)}`
+      }
+      const { data } = await API.get(url)
       setRequests(data.requests || [])
     } catch (err) {
       console.log(err)
@@ -77,6 +104,25 @@ const BloodRequestPage = () => {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleRespond = async (requestId, response) => {
+    try {
+      await API.put(`/requests/${requestId}/respond`, { response })
+      toast.success(`You have ${response} this request`)
+      fetchRequests()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to respond')
+    }
+  }
+
+  // Check if current donor already responded to a request
+  const getDonorResponse = (req) => {
+    if (!donorProfile?._id) return null
+    const found = req.respondedDonors?.find(
+      r => r.donor === donorProfile._id || r.donor?._id === donorProfile._id
+    )
+    return found?.response || null
   }
 
   const inputStyle = {
@@ -316,6 +362,7 @@ const BloodRequestPage = () => {
                   <select name="upazila" value={form.upazila} onChange={handleChange} required
                     style={inputStyle} onFocus={focusIn} onBlur={focusOut}>
                     <option value="">Select upazila</option>
+                    <option value="All">🔴 All Upazilas (Emergency — notify all areas)</option>
                     {UPAZILAS.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                 </div>
@@ -400,6 +447,32 @@ const BloodRequestPage = () => {
             {filteredRequests.length} request{filteredRequests.length !== 1 ? 's' : ''}
           </div>
         </div>
+
+        {/* ── ELIGIBILITY BANNER FOR INELIGIBLE DONORS ── */}
+        {isDonor && donorProfile && !isEligible && (
+          <div style={{
+            background: '#FEF3C7', border: '1px solid #FDE68A',
+            borderRadius: '12px', padding: '14px 20px',
+            display: 'flex', alignItems: 'center', gap: '12px',
+            marginBottom: '16px'
+          }}>
+            <div style={{
+              width: '36px', height: '36px', background: '#F59E0B',
+              borderRadius: '50%', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', flexShrink: 0
+            }}>
+              <FaClock color="#fff" size={16}/>
+            </div>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#92400E' }}>
+                Not eligible yet — {daysUntilEligible} day{daysUntilEligible !== 1 ? 's' : ''} remaining
+              </div>
+              <div style={{ fontSize: '12px', color: '#78350F' }}>
+                You must wait 90 days between donations. You can view all requests but cannot accept until you're eligible again.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── REQUEST CARDS ── */}
         {loading ? (
@@ -496,17 +569,74 @@ const BloodRequestPage = () => {
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0, minWidth: '140px' }}>
+                      {/* Donor Accept/Decline buttons */}
+                      {isDonor && donorProfile && req.bloodGroup === donorProfile.bloodGroup && (() => {
+                        const prevResponse = getDonorResponse(req)
+                        if (prevResponse) {
+                          return (
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: '6px',
+                              background: prevResponse === 'Accepted' ? '#DCFCE7' : '#FEF2F2',
+                              color: prevResponse === 'Accepted' ? '#166534' : '#7F1D1D',
+                              border: `1px solid ${prevResponse === 'Accepted' ? '#86EFAC' : '#FECACA'}`,
+                              padding: '9px 14px', borderRadius: '8px',
+                              fontSize: '12px', fontWeight: '700', justifyContent: 'center'
+                            }}>
+                              {prevResponse === 'Accepted'
+                                ? <><FaCheckCircle size={12}/> You Accepted</>
+                                : <><FaTimesCircle size={12}/> You Declined</>}
+                            </div>
+                          )
+                        }
+                        if (isEligible) {
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <button onClick={() => handleRespond(req._id, 'Accepted')} style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                background: '#DC2626', color: '#FFFFFF',
+                                border: 'none', padding: '9px 14px', borderRadius: '8px',
+                                fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+                                transition: 'background .2s'
+                              }}
+                                onMouseOver={e => e.currentTarget.style.background = '#7F1D1D'}
+                                onMouseOut={e => e.currentTarget.style.background = '#DC2626'}
+                              >
+                                <FaCheckCircle size={12}/> Accept
+                              </button>
+                              <button onClick={() => handleRespond(req._id, 'Declined')} style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                background: '#FFF8F8', color: '#9CA3AF',
+                                border: '1px solid #FECACA', padding: '9px 14px', borderRadius: '8px',
+                                fontSize: '13px', fontWeight: '600', cursor: 'pointer'
+                              }}>
+                                <FaTimesCircle size={12}/> Decline
+                              </button>
+                            </div>
+                          )
+                        }
+                        return (
+                          <button disabled style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                            background: '#F3F4F6', color: '#9CA3AF',
+                            border: '1px solid #E5E7EB', padding: '9px 14px', borderRadius: '8px',
+                            fontSize: '12px', fontWeight: '600', cursor: 'not-allowed'
+                          }}>
+                            <FaClock size={11}/> Eligible in {daysUntilEligible}d
+                          </button>
+                        )
+                      })()}
+
                       <a href={`tel:${req.contactNumber}`} style={{
                         display: 'flex', alignItems: 'center', gap: '7px',
-                        background: '#DC2626', color: '#FFFFFF',
+                        background: isDonor && donorProfile && req.bloodGroup === donorProfile.bloodGroup ? '#FEF2F2' : '#DC2626',
+                        color: isDonor && donorProfile && req.bloodGroup === donorProfile.bloodGroup ? '#DC2626' : '#FFFFFF',
+                        border: isDonor && donorProfile && req.bloodGroup === donorProfile.bloodGroup ? '1px solid #FECACA' : 'none',
                         padding: '10px 18px', borderRadius: '8px',
                         fontSize: '13px', fontWeight: '700',
-                        textDecoration: 'none', transition: 'background .2s'
-                      }}
-                        onMouseOver={e => e.currentTarget.style.background = '#7F1D1D'}
-                        onMouseOut={e => e.currentTarget.style.background = '#DC2626'}
-                      >
+                        textDecoration: 'none', transition: 'background .2s',
+                        justifyContent: 'center'
+                      }}>
                         <FaPhone size={12}/> Call Now
                       </a>
                       <div style={{ fontSize: '11px', color: '#4B5563', textAlign: 'center' }}>

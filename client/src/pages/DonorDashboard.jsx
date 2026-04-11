@@ -9,7 +9,8 @@ import {
   FaToggleOn, FaToggleOff, FaPhone, FaMapMarkerAlt,
   FaCheckCircle, FaTimesCircle, FaHospital,
   FaArrowRight, FaUserFriends, FaBell,
-  FaMedal, FaExclamationTriangle, FaClipboardList, FaUser
+  FaMedal, FaExclamationTriangle, FaClipboardList, FaUser,
+  FaClock
 } from 'react-icons/fa'
 
 const UPAZILAS = [
@@ -77,7 +78,12 @@ const DonorDashboard = () => {
         API.get('/requests/notifications/my')
       ])
       setDonorProfile(profileRes.data)
-      setRequests(requestsRes.data.requests?.slice(0, 4) || [])
+      const myBloodGroup = profileRes.data?.bloodGroup
+      const allRequests = requestsRes.data.requests || []
+      const matchingRequests = myBloodGroup
+        ? allRequests.filter(r => r.bloodGroup === myBloodGroup)
+        : allRequests
+      setRequests(matchingRequests.slice(0, 4))
       setNotifications(notifRes.data.notifications?.slice(0, 3) || [])
     } catch (err) {
       console.log(err)
@@ -180,6 +186,9 @@ const DonorDashboard = () => {
   const daysSinceLastDonation = donorProfile?.lastDonationDate
     ? Math.floor((nowTick - new Date(donorProfile.lastDonationDate)) / (1000 * 60 * 60 * 24))
     : null
+
+  const isEligible = daysSinceLastDonation === null || daysSinceLastDonation >= 90
+  const daysUntilEligible = !isEligible ? 90 - daysSinceLastDonation : 0
 
   if (loading) return (
     <DashboardLayout title="Donor Dashboard" subtitle="Track your donation journey">
@@ -391,6 +400,23 @@ const DonorDashboard = () => {
           </div>
 
           <div style={{ padding: '12px' }}>
+            {!isEligible && requests.length > 0 && (
+              <div style={{
+                background: '#FEF3C7', border: '1px solid #FDE68A',
+                borderRadius: '10px', padding: '10px 14px',
+                marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px'
+              }}>
+                <FaClock size={14} color="#92400e"/>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: '#92400e' }}>
+                    Not eligible yet — {daysUntilEligible} day{daysUntilEligible !== 1 ? 's' : ''} remaining
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#78350f' }}>
+                    You must wait 90 days between donations. You can view requests but cannot accept yet.
+                  </div>
+                </div>
+              </div>
+            )}
             {requests.length > 0 ? requests.map((req) => (
               <div key={req._id} style={{
                 padding: '12px', borderRadius: '10px',
@@ -422,22 +448,35 @@ const DonorDashboard = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                  <button onClick={() => handleRespond(req._id, 'Accepted')} style={{
-                    flex: 1, background: '#dc2626', color: '#fff',
-                    border: 'none', padding: '7px', borderRadius: '6px',
-                    fontSize: '12px', fontWeight: '700', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
-                  }}>
-                    <FaCheckCircle size={11}/> Accept
-                  </button>
-                  <button onClick={() => handleRespond(req._id, 'Declined')} style={{
-                    flex: 1, background: '#fff8f8', color: '#9ca3af',
-                    border: '1px solid #fecaca', padding: '7px', borderRadius: '6px',
-                    fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
-                  }}>
-                    <FaTimesCircle size={11}/> Decline
-                  </button>
+                  {isEligible ? (
+                    <>
+                      <button onClick={() => handleRespond(req._id, 'Accepted')} style={{
+                        flex: 1, background: '#dc2626', color: '#fff',
+                        border: 'none', padding: '7px', borderRadius: '6px',
+                        fontSize: '12px', fontWeight: '700', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
+                      }}>
+                        <FaCheckCircle size={11}/> Accept
+                      </button>
+                      <button onClick={() => handleRespond(req._id, 'Declined')} style={{
+                        flex: 1, background: '#fff8f8', color: '#9ca3af',
+                        border: '1px solid #fecaca', padding: '7px', borderRadius: '6px',
+                        fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
+                      }}>
+                        <FaTimesCircle size={11}/> Decline
+                      </button>
+                    </>
+                  ) : (
+                    <button disabled style={{
+                      flex: 1, background: '#f3f4f6', color: '#9ca3af',
+                      border: '1px solid #e5e7eb', padding: '7px', borderRadius: '6px',
+                      fontSize: '12px', fontWeight: '600', cursor: 'not-allowed',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
+                    }}>
+                      <FaClock size={11}/> Eligible in {daysUntilEligible} day{daysUntilEligible !== 1 ? 's' : ''}
+                    </button>
+                  )}
                 </div>
               </div>
             )) : (

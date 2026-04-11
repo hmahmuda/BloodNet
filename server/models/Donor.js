@@ -63,4 +63,17 @@ const donorSchema = new mongoose.Schema({
   }
 }, { timestamps: true })
 
+// Enforce 90-day cooldown: if lastDonationDate is within 90 days, isAvailable must be false
+donorSchema.pre('save', function (next) {
+  if (this.lastDonationDate) {
+    const diffDays = Math.floor(
+      (Date.now() - new Date(this.lastDonationDate).getTime()) / (1000 * 60 * 60 * 24)
+    )
+    if (diffDays < 90) {
+      this.isAvailable = false
+    }
+  }
+  next()
+})
+
 module.exports = mongoose.model('Donor', donorSchema)

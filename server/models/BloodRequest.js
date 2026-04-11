@@ -28,7 +28,7 @@ const bloodRequestSchema = new mongoose.Schema({
   },
   upazila: {
     type: String,
-    required: true
+    default: ''
   },
   urgencyLevel: {
     type: String,

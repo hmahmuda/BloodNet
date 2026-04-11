@@ -55,6 +55,9 @@ const getMyProfile = async (req, res) => {
     if (!eligible && donor.isAvailable) {
       donor.isAvailable = false
       await donor.save()
+    } else if (eligible && !donor.isAvailable) {
+      donor.isAvailable = true
+      await donor.save()
     }
 
     res.status(200).json(donor)
@@ -151,6 +154,21 @@ const searchDonors = async (req, res) => {
     if (bloodGroup) {
       filter.bloodGroup = bloodGroup.toUpperCase()
     }
+
+    // Exclude donors who have donated within the last 90 days
+    const donationCycleDays = 90
+    const cycleDate = new Date(Date.now() - donationCycleDays * 24 * 60 * 60 * 1000)
+
+    // Auto-restore donors whose 90-day cooldown has passed
+    await Donor.updateMany(
+      { isAvailable: false, lastDonationDate: { $ne: null, $lte: cycleDate } },
+      { isAvailable: true }
+    )
+
+    filter.$or = [
+      { lastDonationDate: null },
+      { lastDonationDate: { $lte: cycleDate } }
+    ]
 
     // Case-insensitive upazila search
     if (upazila) {

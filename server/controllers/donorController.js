@@ -130,7 +130,7 @@ const searchDonors = async (req, res) => {
     const { bloodGroup, upazila } = req.query
 
     // Build the search filter
-    const filter = { isAvailable: true }
+    const filter = {}
 
     if (bloodGroup) filter.bloodGroup = bloodGroup
     if (upazila) filter.upazila = upazila

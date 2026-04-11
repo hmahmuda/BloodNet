@@ -504,7 +504,7 @@ const AdminDashboard = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#FFF7F8' }}>
-                  {['Patient', 'Blood', 'Hospital', 'Upazila', 'Urgency', 'Status', 'Action'].map(h => (
+                  {['Patient', 'Blood', 'Hospital', 'Upazila', 'Urgency', 'Status'].map(h => (
                     <th key={h} style={{
                       padding: '12px 16px', textAlign: 'left',
                       fontSize: '11px', fontWeight: '800',
@@ -563,23 +563,7 @@ const AdminDashboard = () => {
                           {req.status}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <select
-                          defaultValue={req.status}
-                          onChange={e => updateRequestStatus(req._id, e.target.value)}
-                          style={{
-                            padding: '6px 10px', border: '1.5px solid #FECACA',
-                            borderRadius: '6px', fontSize: '12px',
-                            color: '#1F2937', background: '#FFFFFF',
-                            outline: 'none', cursor: 'pointer'
-                          }}
-                        >
-                          <option value="Pending">Pending</option>
-                          <option value="Accepted">Accepted</option>
-                          <option value="Fulfilled">Fulfilled</option>
-                          <option value="Cancelled">Cancelled</option>
-                        </select>
-                      </td>
+
                     </tr>
                   )
                 })}

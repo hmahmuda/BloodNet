@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   FaTint, FaHome, FaSearch, FaBell,
-  FaClipboardList, FaUser, FaSignOutAlt,
+  FaClipboardList, FaSignOutAlt,
   FaChartBar, FaBoxes, FaUserFriends
 } from 'react-icons/fa'
 
@@ -20,7 +20,6 @@ const Sidebar = () => {
     { path: '/search',         icon: <FaSearch size={14}/>,        label: 'Find Donors' },
     { path: '/requests',       icon: <FaClipboardList size={14}/>, label: 'Blood Requests', dot: true },
     { path: '/notifications',  icon: <FaBell size={14}/>,          label: 'Notifications', dot: true },
-    { path: '/profile',        icon: <FaUser size={14}/>,          label: 'My Profile' },
   ]
 
   const patientLinks = [
@@ -29,7 +28,6 @@ const Sidebar = () => {
     { path: '/search',            icon: <FaSearch size={14}/>,        label: 'Find Donors' },
     { path: '/requests',          icon: <FaClipboardList size={14}/>, label: 'Create Request', dot: true },
     { path: '/notifications',     icon: <FaBell size={14}/>,          label: 'Notifications', dot: true },
-    { path: '/profile',           icon: <FaUser size={14}/>,          label: 'My Profile' },
   ]
 
   const adminLinks = [

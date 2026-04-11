@@ -65,18 +65,23 @@ const createBloodRequest = async (req, res) => {
       additionalNotes: typeof additionalNotes === 'string' ? additionalNotes.trim() : additionalNotes
     })
 
-    // Auto-restore donors whose 90-day cooldown has passed
+    // Find matching donors whose donation cycle is fulfilled (90-day cooldown)
     const donationCycleDays = 90
     const cycleDate = new Date(Date.now() - donationCycleDays * 24 * 60 * 60 * 1000)
 
+    // Auto-restore donors whose 90-day cooldown has passed
     await Donor.updateMany(
       { isAvailable: false, lastDonationDate: { $ne: null, $lte: cycleDate } },
       { isAvailable: true }
     )
 
-    // Notify ALL donors with matching blood group (including ineligible ones)
     const donorFilter = {
-      bloodGroup: normalizedBloodGroup
+      bloodGroup: normalizedBloodGroup,
+      isAvailable: true,
+      $or: [
+        { lastDonationDate: null },
+        { lastDonationDate: { $lte: cycleDate } }
+      ]
     }
 
     if (normalizedUpazila) {
@@ -130,7 +135,6 @@ const getAllRequests = async (req, res) => {
 
     const requests = await BloodRequest.find(filter)
       .populate('requester', 'name email')
-      .populate('respondedDonors.donor', '_id')
       .sort({ createdAt: -1 })
 
     res.status(200).json({

@@ -244,8 +244,10 @@ const DonorDashboard = () => {
             num: donorProfile?.lastDonationDate
               ? `${daysSinceLastDonation}d`
               : 'N/A',
-            label: 'Days since last',
-            sub: 'শেষ দান',
+            label: donorProfile?.lastDonationDate
+              ? new Date(donorProfile.lastDonationDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+              : 'No donation yet',
+            sub: 'শেষ দানের তারিখ',
             color: '#92400e', bg: '#fef3c7'
           },
           {
@@ -497,11 +499,17 @@ const DonorDashboard = () => {
                     <FaTint color="#dc2626" size={16}/>
                   </div>
                   <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#1F2937' }}>
-                    {d.hospital || 'Hospital not specified'}
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#4B5563' }}>
-                      {new Date(d.date).toLocaleDateString('en-BD')} · {d.bloodGroup}
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#1F2937' }}>
+                      {d.hospital || 'Hospital not specified'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '700', color: '#dc2626' }}>
+                        <FaCalendarAlt size={10}/>
+                        {new Date(d.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                      <span style={{ background: '#dc2626', color: '#fff', padding: '1px 8px', borderRadius: '99px', fontSize: '11px', fontWeight: '900' }}>
+                        {d.bloodGroup}
+                      </span>
                     </div>
                   </div>
                   <span style={{

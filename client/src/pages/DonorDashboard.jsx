@@ -12,6 +12,12 @@ import {
   FaMedal, FaExclamationTriangle, FaClipboardList, FaUser
 } from 'react-icons/fa'
 
+const UPAZILAS = [
+  'Sylhet Sadar', 'Beanibazar', 'Bishwanath', 'Companiganj',
+  'Fenchuganj', 'Golapganj', 'Gowainghat', 'Jaintiapur',
+  'Kanaighat', 'Osmaninagar', 'South Surma', 'Balaganj', 'Zakiganj'
+]
+
 const DonorDashboard = () => {
   const { user, setUser } = useAuth()
   const [donorProfile, setDonorProfile] = useState(null)
@@ -577,16 +583,20 @@ const DonorDashboard = () => {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#7F1D1D', marginBottom: '6px' }}>
                     Upazila / Location
                   </label>
-                  <input
+                  <select
                     name="upazila"
                     value={profileForm.upazila}
                     onChange={handleProfileInput}
-                    placeholder="Enter your upazila"
                     style={{
                       width: '100%', border: '1px solid #fecaca', borderRadius: '8px',
                       padding: '10px 12px', fontSize: '13px', outline: 'none'
                     }}
-                  />
+                  >
+                    <option value="">Select your upazila</option>
+                    {UPAZILAS.map((upazila) => (
+                      <option key={upazila} value={upazila}>{upazila}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

@@ -60,11 +60,18 @@ const createBloodRequest = async (req, res) => {
       additionalNotes
     })
 
-    // Find all matching available donors in the same upazila
+    // Find matching donors whose donation cycle is fulfilled (90-day cooldown)
+    const donationCycleDays = 90
+    const cycleDate = new Date(Date.now() - donationCycleDays * 24 * 60 * 60 * 1000)
+
     const matchingDonors = await Donor.find({
       bloodGroup,
       upazila,
-      isAvailable: true
+      isAvailable: true,
+      $or: [
+        { lastDonationDate: null },
+        { lastDonationDate: { $lte: cycleDate } }
+      ]
     }).populate('user')
 
     // Send notification to each matching donor

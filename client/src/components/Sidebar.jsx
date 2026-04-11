@@ -15,6 +15,7 @@ const Sidebar = () => {
   const isActive = (path) => location.pathname === path
 
   const donorLinks = [
+    { path: '/',                 icon: <FaHome size={14}/>,          label: 'Home' },
     { path: '/dashboard/donor', icon: <FaHome size={14}/>,          label: 'Dashboard' },
     { path: '/search',         icon: <FaSearch size={14}/>,        label: 'Find Donors' },
     { path: '/requests',       icon: <FaClipboardList size={14}/>, label: 'Blood Requests', dot: true },
@@ -23,6 +24,7 @@ const Sidebar = () => {
   ]
 
   const patientLinks = [
+    { path: '/',                  icon: <FaHome size={14}/>,          label: 'Home' },
     { path: '/dashboard/patient', icon: <FaHome size={14}/>,          label: 'Dashboard' },
     { path: '/search',            icon: <FaSearch size={14}/>,        label: 'Find Donors' },
     { path: '/requests',          icon: <FaClipboardList size={14}/>, label: 'Create Request', dot: true },
@@ -31,6 +33,7 @@ const Sidebar = () => {
   ]
 
   const adminLinks = [
+    { path: '/',                icon: <FaHome size={14}/>,          label: 'Home' },
     { path: '/admin',           icon: <FaChartBar size={14}/>,     label: 'Overview' },
     { path: '/admin/users',     icon: <FaUserFriends size={14}/>,  label: 'Donors' },
     { path: '/admin/requests',  icon: <FaClipboardList size={14}/>,label: 'Requests' },

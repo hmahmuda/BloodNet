@@ -15,9 +15,27 @@ if (!process.env.JWT_SECRET || !process.env.MONGO_URI) {
 const app = express()
 const PORT = process.env.PORT || 5000
 
-// CORS — only allow the configured client origin
+// CORS — allow configured origin and local dev hosts on any port
+const configuredClientUrl = process.env.CLIENT_URL
+const allowedOrigins = [
+  configuredClientUrl,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+].filter(Boolean)
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true)
+
+    const isExplicitAllowed = allowedOrigins.includes(origin)
+    const isLocalDevHost = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)
+
+    if (isExplicitAllowed || isLocalDevHost) {
+      return callback(null, true)
+    }
+
+    return callback(new Error('Not allowed by CORS'))
+  },
   credentials: true
 }))
 

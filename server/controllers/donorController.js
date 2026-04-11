@@ -75,10 +75,25 @@ const updateDonorProfile = async (req, res) => {
 
     const { upazila, phone, weight, medicalConditions } = req.body
 
-    donor.upazila = upazila || donor.upazila
-    donor.phone = phone || donor.phone
-    donor.weight = weight || donor.weight
-    donor.medicalConditions = medicalConditions || donor.medicalConditions
+    if (typeof upazila === 'string' && upazila.trim()) {
+      donor.upazila = upazila.trim()
+    }
+
+    if (typeof phone === 'string' && phone.trim()) {
+      donor.phone = phone.trim()
+    }
+
+    if (weight !== undefined && weight !== null && weight !== '') {
+      const normalizedWeight = Number(weight)
+      if (Number.isNaN(normalizedWeight) || normalizedWeight <= 0) {
+        return res.status(400).json({ message: 'Weight must be a positive number' })
+      }
+      donor.weight = normalizedWeight
+    }
+
+    if (typeof medicalConditions === 'string') {
+      donor.medicalConditions = medicalConditions.trim() || 'None'
+    }
 
     await donor.save()
 

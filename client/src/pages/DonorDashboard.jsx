@@ -13,8 +13,16 @@ import {
 } from 'react-icons/fa'
 
 const DonorDashboard = () => {
-  const { user } = useAuth()
+  const { user, setUser } = useAuth()
   const [donorProfile, setDonorProfile] = useState(null)
+  const [profileForm, setProfileForm] = useState({
+    phone: '',
+    upazila: '',
+    weight: '',
+    medicalConditions: ''
+  })
+  const [editingProfile, setEditingProfile] = useState(false)
+  const [savingProfile, setSavingProfile] = useState(false)
   const [requests, setRequests] = useState([])
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
@@ -22,17 +30,17 @@ const DonorDashboard = () => {
   const [nowTick, setNowTick] = useState(Date.now())
 
   useEffect(() => {
-    fetchAll()
+    fetchAll(true)
 
     const refreshInterval = setInterval(() => {
-      fetchAll()
+      fetchAll(false)
     }, 30000)
 
     const tickInterval = setInterval(() => {
       setNowTick(Date.now())
     }, 60000)
 
-    const refreshOnFocus = () => fetchAll()
+    const refreshOnFocus = () => fetchAll(false)
     window.addEventListener('focus', refreshOnFocus)
     document.addEventListener('visibilitychange', refreshOnFocus)
 
@@ -44,7 +52,18 @@ const DonorDashboard = () => {
     }
   }, [])
 
-  const fetchAll = async () => {
+  useEffect(() => {
+    if (donorProfile && !editingProfile) {
+      setProfileForm({
+        phone: donorProfile.phone || '',
+        upazila: donorProfile.upazila || '',
+        weight: donorProfile.weight ?? '',
+        medicalConditions: donorProfile.medicalConditions || ''
+      })
+    }
+  }, [donorProfile, editingProfile])
+
+  const fetchAll = async (showErrorToast = false) => {
     try {
       const [profileRes, requestsRes, notifRes] = await Promise.all([
         API.get('/donors/profile/me'),
@@ -56,6 +75,9 @@ const DonorDashboard = () => {
       setNotifications(notifRes.data.notifications?.slice(0, 3) || [])
     } catch (err) {
       console.log(err)
+      if (showErrorToast) {
+        toast.error(err.response?.data?.message || 'Could not load dashboard data')
+      }
     } finally {
       setLoading(false)
     }
@@ -78,9 +100,60 @@ const DonorDashboard = () => {
     try {
       await API.put(`/requests/${requestId}/respond`, { response })
       toast.success(`You have ${response} this request`)
-      fetchAll()
+      fetchAll(true)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to respond')
+    }
+  }
+
+  const handleProfileInput = (e) => {
+    const { name, value } = e.target
+    setProfileForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleProfileCancel = () => {
+    setEditingProfile(false)
+    setProfileForm({
+      phone: donorProfile?.phone || '',
+      upazila: donorProfile?.upazila || '',
+      weight: donorProfile?.weight ?? '',
+      medicalConditions: donorProfile?.medicalConditions || ''
+    })
+  }
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault()
+
+    if (!profileForm.phone.trim() || !profileForm.upazila.trim()) {
+      toast.error('Phone and location are required')
+      return
+    }
+
+    setSavingProfile(true)
+    try {
+      const payload = {
+        phone: profileForm.phone.trim(),
+        upazila: profileForm.upazila.trim(),
+        medicalConditions: profileForm.medicalConditions.trim() || 'None'
+      }
+
+      if (profileForm.weight !== '') {
+        payload.weight = Number(profileForm.weight)
+      }
+
+      const { data } = await API.put('/donors/profile/update', payload)
+      setDonorProfile(data.donor)
+      setUser((prev) => prev ? {
+        ...prev,
+        upazila: data.donor.upazila,
+        phone: data.donor.phone
+      } : prev)
+      setEditingProfile(false)
+      toast.success(data.message || 'Profile updated successfully')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update profile')
+    } finally {
+      setSavingProfile(false)
     }
   }
 
@@ -91,9 +164,11 @@ const DonorDashboard = () => {
     return { label: 'Bronze', color: '#7f1d1d', icon: <FaMedal size={11}/> }
   }
 
+  const activeBloodGroup = donorProfile?.bloodGroup || user?.bloodGroup
+
   const emergencyRequests = requests.filter(r =>
     r.urgencyLevel === 'Emergency' &&
-    r.bloodGroup === user?.bloodGroup
+    r.bloodGroup === activeBloodGroup
   )
 
   const daysSinceLastDonation = donorProfile?.lastDonationDate
@@ -138,7 +213,7 @@ const DonorDashboard = () => {
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '14px', fontWeight: '800', color: '#7F1D1D', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <FaExclamationTriangle size={12}/>
-              Emergency! {emergencyRequests.length} urgent request(s) matching your blood group {user?.bloodGroup}
+              Emergency! {emergencyRequests.length} urgent request(s) matching your blood group {activeBloodGroup}
             </div>
             <div style={{ fontSize: '12px', color: '#4B5563' }}>
               {emergencyRequests[0]?.hospital} · {emergencyRequests[0]?.upazila}
@@ -177,10 +252,10 @@ const DonorDashboard = () => {
               color: '#fff', padding: '3px 12px',
               borderRadius: '99px', fontSize: '13px', fontWeight: '800'
             }}>
-              {user?.bloodGroup}
+              {activeBloodGroup}
             </span>
             <span style={{ fontSize: '12px', color: '#4B5563' }}>
-              <FaMapMarkerAlt size={10}/> {user?.upazila}
+              <FaMapMarkerAlt size={10}/> {donorProfile?.upazila || user?.upazila}
             </span>
             <span style={{ fontSize: '12px', color: '#4B5563', display: 'flex', alignItems: 'center', gap: '5px' }}>
               <span style={{ color: level.color, display: 'inline-flex', alignItems: 'center' }}>{level.icon}</span> {level.label} Donor
@@ -441,25 +516,141 @@ const DonorDashboard = () => {
             আপনার প্রোফাইল
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-            {[
-              { label: 'Blood group', value: donorProfile.bloodGroup, icon: <FaTint size={14}/>, color: '#dc2626' },
-              { label: 'Phone', value: donorProfile.phone, icon: <FaPhone size={14}/>, color: '#7f1d1d' },
-              { label: 'Location', value: donorProfile.upazila, icon: <FaMapMarkerAlt size={14}/>, color: '#dc2626' },
-              { label: 'Gender', value: donorProfile.gender || 'N/A', icon: <FaUserFriends size={14}/>, color: '#7f1d1d' }
-            ].map((item) => (
-              <div key={item.label} style={{
-                background: '#fff8f8', border: '1px solid #fecaca',
-                borderRadius: '10px', padding: '14px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: item.color }}>
-                  {item.icon}
-                  <span style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af' }}>{item.label}</span>
-                </div>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D' }}>{item.value}</div>
+          {!editingProfile ? (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+                {[
+                  { label: 'Blood group', value: donorProfile.bloodGroup, icon: <FaTint size={14}/>, color: '#dc2626' },
+                  { label: 'Phone', value: donorProfile.phone, icon: <FaPhone size={14}/>, color: '#7f1d1d' },
+                  { label: 'Location', value: donorProfile.upazila, icon: <FaMapMarkerAlt size={14}/>, color: '#dc2626' },
+                  { label: 'Gender', value: donorProfile.gender || 'N/A', icon: <FaUserFriends size={14}/>, color: '#7f1d1d' },
+                  { label: 'Weight (kg)', value: donorProfile.weight ?? 'N/A', icon: <FaHeartbeat size={14}/>, color: '#dc2626' },
+                  { label: 'Medical', value: donorProfile.medicalConditions || 'None', icon: <FaClipboardList size={14}/>, color: '#7f1d1d' }
+                ].map((item) => (
+                  <div key={item.label} style={{
+                    background: '#fff8f8', border: '1px solid #fecaca',
+                    borderRadius: '10px', padding: '14px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: item.color }}>
+                      {item.icon}
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: '#9ca3af' }}>{item.label}</span>
+                    </div>
+                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#7F1D1D' }}>{item.value}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setEditingProfile(true)}
+                  style={{
+                    background: '#dc2626', color: '#fff',
+                    border: 'none', borderRadius: '8px',
+                    padding: '10px 16px', fontSize: '13px',
+                    fontWeight: '700', cursor: 'pointer'
+                  }}
+                >
+                  Edit Profile
+                </button>
+              </div>
+            </>
+          ) : (
+            <form onSubmit={handleProfileUpdate}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#7F1D1D', marginBottom: '6px' }}>
+                    Phone
+                  </label>
+                  <input
+                    name="phone"
+                    value={profileForm.phone}
+                    onChange={handleProfileInput}
+                    placeholder="e.g. 01XXXXXXXXX"
+                    style={{
+                      width: '100%', border: '1px solid #fecaca', borderRadius: '8px',
+                      padding: '10px 12px', fontSize: '13px', outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#7F1D1D', marginBottom: '6px' }}>
+                    Upazila / Location
+                  </label>
+                  <input
+                    name="upazila"
+                    value={profileForm.upazila}
+                    onChange={handleProfileInput}
+                    placeholder="Enter your upazila"
+                    style={{
+                      width: '100%', border: '1px solid #fecaca', borderRadius: '8px',
+                      padding: '10px 12px', fontSize: '13px', outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#7F1D1D', marginBottom: '6px' }}>
+                    Weight (kg)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    name="weight"
+                    value={profileForm.weight}
+                    onChange={handleProfileInput}
+                    placeholder="e.g. 60"
+                    style={{
+                      width: '100%', border: '1px solid #fecaca', borderRadius: '8px',
+                      padding: '10px 12px', fontSize: '13px', outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#7F1D1D', marginBottom: '6px' }}>
+                    Medical Conditions
+                  </label>
+                  <input
+                    name="medicalConditions"
+                    value={profileForm.medicalConditions}
+                    onChange={handleProfileInput}
+                    placeholder="None"
+                    style={{
+                      width: '100%', border: '1px solid #fecaca', borderRadius: '8px',
+                      padding: '10px 12px', fontSize: '13px', outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={handleProfileCancel}
+                  disabled={savingProfile}
+                  style={{
+                    background: '#fff8f8', color: '#7f1d1d', border: '1px solid #fecaca',
+                    borderRadius: '8px', padding: '10px 14px', fontSize: '13px',
+                    fontWeight: '700', cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProfile}
+                  style={{
+                    background: '#dc2626', color: '#fff', border: 'none',
+                    borderRadius: '8px', padding: '10px 14px', fontSize: '13px',
+                    fontWeight: '700', cursor: 'pointer'
+                  }}
+                >
+                  {savingProfile ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       )}
 

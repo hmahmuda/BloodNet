@@ -529,7 +529,3 @@ node scripts/checkAdminLogin.js --email admin@example.com --password StrongPass1
 - Improve input validation with schema-based validators
 - Add deployment manifests and CI pipeline
 - Add audit logs and activity timeline for admin actions
-
----
-
-If you use this project for production, harden all secrets, add centralized logging, and enforce HTTPS at the reverse proxy level.

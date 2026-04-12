@@ -148,27 +148,28 @@ const searchDonors = async (req, res) => {
     const { bloodGroup, upazila } = req.query
 
     // Build the search filter
-    const filter = { isAvailable: true }
+    const filter = {}
 
     // Case-insensitive blood group search
     if (bloodGroup) {
       filter.bloodGroup = bloodGroup.toUpperCase()
     }
 
-    // Exclude donors who have donated within the last 90 days
+    // Use 90-day cycle to compute availability
     const donationCycleDays = 90
     const cycleDate = new Date(Date.now() - donationCycleDays * 24 * 60 * 60 * 1000)
 
-    // Auto-restore donors whose 90-day cooldown has passed
+    // Force recent donors unavailable
     await Donor.updateMany(
-      { isAvailable: false, lastDonationDate: { $ne: null, $lte: cycleDate } },
-      { isAvailable: true }
+      { lastDonationDate: { $ne: null, $gt: cycleDate } },
+      { isAvailable: false }
     )
 
-    filter.$or = [
-      { lastDonationDate: null },
-      { lastDonationDate: { $lte: cycleDate } }
-    ]
+    // Auto-restore donors whose 90-day cooldown has passed
+    await Donor.updateMany(
+      { lastDonationDate: { $ne: null, $lte: cycleDate } },
+      { isAvailable: true }
+    )
 
     // Case-insensitive upazila search
     if (upazila) {
@@ -177,7 +178,7 @@ const searchDonors = async (req, res) => {
 
     const donors = await Donor.find(filter)
       .populate('user', 'name email')
-      .sort({ updatedAt: -1 })
+      .sort({ isAvailable: -1, updatedAt: -1 })
 
     res.status(200).json({
       count: donors.length,

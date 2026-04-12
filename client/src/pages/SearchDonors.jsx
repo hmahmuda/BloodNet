@@ -21,6 +21,7 @@ const SearchDonors = () => {
   const [bloodGroup, setBloodGroup]   = useState('')
   const [upazila, setUpazila]         = useState('')
   const [totalDonors, setTotalDonors] = useState(0)
+  const [availabilityFilter, setAvailabilityFilter] = useState('all')
 
   // Load all available donors on first visit
   useEffect(() => {
@@ -62,12 +63,45 @@ const SearchDonors = () => {
     fetchDonors('', '')
   }
 
-  const getDaysSince = (date) => {
-    if (!date) return 'Never donated'
-    const days = Math.floor((new Date() - new Date(date)) / (1000 * 60 * 60 * 24))
-    if (days === 0) return 'Today'
-    if (days === 1) return 'Yesterday'
-    return `${days} days ago`
+  const getDonationTiming = (date) => {
+    if (!date) {
+      return {
+        hasDonated: false,
+        lastDonationLabel: 'Never donated',
+        lastDonationDateLabel: 'N/A',
+        daysUntilEligible: 0,
+        canDonateNow: true,
+        nextDonationLabel: 'Can donate now'
+      }
+    }
+
+    const now = new Date()
+    const lastDonation = new Date(date)
+    const daysSinceLastDonation = Math.floor((now - lastDonation) / (1000 * 60 * 60 * 24))
+    const daysUntilEligible = Math.max(0, 90 - daysSinceLastDonation)
+    const canDonateNow = daysUntilEligible === 0
+
+    return {
+      hasDonated: true,
+      lastDonationLabel: daysSinceLastDonation <= 0 ? 'Today' : `${daysSinceLastDonation} day${daysSinceLastDonation !== 1 ? 's' : ''} ago`,
+      lastDonationDateLabel: lastDonation.toLocaleDateString('en-BD', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      }),
+      daysUntilEligible,
+      canDonateNow,
+      nextDonationLabel: canDonateNow
+        ? 'Can donate now'
+        : `Can donate in ${daysUntilEligible} day${daysUntilEligible !== 1 ? 's' : ''}`,
+      nextEligibleDate: canDonateNow
+        ? null
+        : new Date(lastDonation.getTime() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString('en-BD', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          })
+    }
   }
 
   const getDonorLevel = (donations) => {
@@ -88,6 +122,15 @@ const SearchDonors = () => {
       autoClose: false
     })
   }
+
+  const availableCount = donors.filter(d => d.isAvailable).length
+  const unavailableCount = donors.length - availableCount
+
+  const filteredDonors = availabilityFilter === 'available'
+    ? donors.filter(d => d.isAvailable)
+    : availabilityFilter === 'unavailable'
+      ? donors.filter(d => !d.isAvailable)
+      : donors
 
   return (
     <div style={{ background: '#FFF7F8', minHeight: '100vh' }}>
@@ -250,7 +293,7 @@ const SearchDonors = () => {
               {bloodGroup && upazila ? `${bloodGroup} donors in ${upazila}` :
                bloodGroup ? `All ${bloodGroup} donors in Sylhet` :
                upazila ? `All donors in ${upazila}` :
-               'All available donors in Sylhet'}
+               'All donors in Sylhet'}
             </div>
           </div>
 
@@ -262,10 +305,48 @@ const SearchDonors = () => {
               fontSize: '12px', fontWeight: '700',
               display: 'flex', alignItems: 'center', gap: '6px'
             }}>
-              <FaUserFriends size={12}/> {totalDonors} available
+              <FaUserFriends size={12}/> {availableCount} available / {totalDonors} total
             </div>
           )}
         </div>
+
+        {/* ── AVAILABILITY FILTER TABS ── */}
+        {!loading && donors.length > 0 && (
+          <div style={{
+            display: 'flex', gap: '8px',
+            marginBottom: '20px',
+            background: '#FFFFFF',
+            border: '1px solid #FECACA',
+            borderRadius: '10px', padding: '6px'
+          }}>
+            {[
+              { value: 'all',         label: 'All',         count: donors.length },
+              { value: 'available',   label: 'Available',   count: availableCount },
+              { value: 'unavailable', label: 'Unavailable', count: unavailableCount }
+            ].map((tab) => (
+              <button key={tab.value} onClick={() => setAvailabilityFilter(tab.value)} style={{
+                flex: 1, padding: '9px 16px', borderRadius: '8px',
+                border: 'none', cursor: 'pointer',
+                background: availabilityFilter === tab.value ? '#DC2626' : 'transparent',
+                color: availabilityFilter === tab.value ? '#FFFFFF' : '#4B5563',
+                fontSize: '13px', fontWeight: '700',
+                transition: 'all .2s',
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: '6px'
+              }}>
+                {tab.label}
+                <span style={{
+                  background: availabilityFilter === tab.value ? 'rgba(255,255,255,0.25)' : '#FEF2F2',
+                  color: availabilityFilter === tab.value ? '#FFFFFF' : '#DC2626',
+                  padding: '1px 7px', borderRadius: '99px',
+                  fontSize: '11px', fontWeight: '800'
+                }}>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* ── LOADING STATE ── */}
         {loading && (
@@ -276,28 +357,30 @@ const SearchDonors = () => {
         )}
 
         {/* ── DONORS GRID ── */}
-        {!loading && donors.length > 0 && (
+        {!loading && filteredDonors.length > 0 && (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '16px', marginBottom: '40px'
           }}>
-            {donors.map((donor) => {
+            {filteredDonors.map((donor) => {
               const level = getDonorLevel(donor.totalDonations)
+              const timing = getDonationTiming(donor.lastDonationDate)
+              const isCurrentlyAvailable = donor.isAvailable && timing.canDonateNow
               return (
                 <div key={donor._id} style={{
                   background: '#FFFFFF',
-                  border: '1px solid #FECACA',
+                  border: `1px solid ${isCurrentlyAvailable ? '#FECACA' : '#FCA5A5'}`,
                   borderRadius: '14px', padding: '20px',
                   transition: 'all .2s',
                   cursor: 'default'
                 }}
                   onMouseOver={e => {
-                    e.currentTarget.style.borderColor = '#DC2626'
+                    e.currentTarget.style.borderColor = isCurrentlyAvailable ? '#DC2626' : '#EF4444'
                     e.currentTarget.style.transform = 'translateY(-2px)'
                   }}
                   onMouseOut={e => {
-                    e.currentTarget.style.borderColor = '#FECACA'
+                    e.currentTarget.style.borderColor = isCurrentlyAvailable ? '#FECACA' : '#FCA5A5'
                     e.currentTarget.style.transform = 'translateY(0)'
                   }}
                 >
@@ -351,12 +434,13 @@ const SearchDonors = () => {
 
                     {/* Available badge */}
                     <span style={{
-                      background: '#DCFCE7', color: '#166534',
-                      border: '1px solid #86EFAC',
+                      background: isCurrentlyAvailable ? '#DCFCE7' : '#FEF2F2',
+                      color: isCurrentlyAvailable ? '#166534' : '#B91C1C',
+                      border: `1px solid ${isCurrentlyAvailable ? '#86EFAC' : '#FECACA'}`,
                       padding: '3px 10px', borderRadius: '99px',
                       fontSize: '11px', fontWeight: '700'
                     }}>
-                      ✓ Available
+                      {isCurrentlyAvailable ? '✓ Available' : '✕ Unavailable'}
                     </span>
 
                     {/* Donor level badge */}
@@ -390,18 +474,29 @@ const SearchDonors = () => {
                     border: '1px solid #FEF2F2',
                     borderRadius: '8px', padding: '10px 12px',
                     marginBottom: '14px',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    gap: '10px'
                   }}>
                     <span style={{ fontSize: '12px', color: '#4B5563', fontWeight: '500' }}>
                       Last donation
                     </span>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
                       <span style={{ fontSize: '12px', fontWeight: '700', color: '#7F1D1D' }}>
-                        {getDaysSince(donor.lastDonationDate)}
+                        {timing.lastDonationLabel}
                       </span>
-                      {donor.lastDonationDate && (
-                        <span style={{ fontSize: '11px', color: '#1F2937', fontWeight: '500' }}>
-                          Date: {new Date(donor.lastDonationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      <span style={{ fontSize: '11px', color: '#1F2937', fontWeight: '500' }}>
+                        Date: {timing.lastDonationDateLabel}
+                      </span>
+                      <span style={{
+                        fontSize: '11px',
+                        color: timing.canDonateNow ? '#166534' : '#B91C1C',
+                        fontWeight: '700'
+                      }}>
+                        {timing.nextDonationLabel}
+                      </span>
+                      {timing.nextEligibleDate && (
+                        <span style={{ fontSize: '10px', color: '#4B5563', fontWeight: '500' }}>
+                          Eligible on: {timing.nextEligibleDate}
                         </span>
                       )}
                     </div>
@@ -410,20 +505,25 @@ const SearchDonors = () => {
                   {/* Contact button */}
                   <button 
                     onClick={() => handleContactDonor(donor.phone, donor.user?.name)}
+                    disabled={!isCurrentlyAvailable}
                     style={{
                       display: 'flex', alignItems: 'center',
                       justifyContent: 'center', gap: '8px',
-                      width: '100%', background: '#DC2626',
+                      width: '100%', background: isCurrentlyAvailable ? '#DC2626' : '#9CA3AF',
                       color: '#FFFFFF', border: 'none',
                       padding: '11px', borderRadius: '8px',
                       fontSize: '13px', fontWeight: '700',
-                      textDecoration: 'none', cursor: 'pointer',
+                      textDecoration: 'none', cursor: isCurrentlyAvailable ? 'pointer' : 'not-allowed',
                       transition: 'background .2s'
                     }}
-                    onMouseOver={e => e.currentTarget.style.background = '#7F1D1D'}
-                    onMouseOut={e => e.currentTarget.style.background = '#DC2626'}
+                    onMouseOver={e => {
+                      if (isCurrentlyAvailable) e.currentTarget.style.background = '#7F1D1D'
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.background = isCurrentlyAvailable ? '#DC2626' : '#9CA3AF'
+                    }}
                   >
-                    <FaPhone size={12}/> Contact Donor
+                    <FaPhone size={12}/>{isCurrentlyAvailable ? 'Contact Donor' : 'Unavailable for donation'}
                   </button>
 
                 </div>

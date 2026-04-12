@@ -100,13 +100,17 @@ const BloodRequestPage = () => {
     return { bg: '#DCFCE7', color: '#166534', border: '#86EFAC' }
   }
 
-  const getTimeAgo = (date) => {
-    const mins = Math.floor((new Date() - new Date(date)) / 60000)
-    if (mins < 1)   return 'Just now'
-    if (mins < 60)  return `${mins}m ago`
-    const hrs = Math.floor(mins / 60)
-    if (hrs < 24)   return `${hrs}h ago`
-    return `${Math.floor(hrs / 24)}d ago`
+  const formatRequestDateTime = (date) => {
+    const parsed = new Date(date)
+    if (Number.isNaN(parsed.getTime())) return 'Invalid date'
+
+    return parsed.toLocaleString('en-BD', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   const filteredRequests = requests.filter(r => {
@@ -485,7 +489,7 @@ const BloodRequestPage = () => {
                           <FaMapMarkerAlt size={11} color="#DC2626"/> {req.upazila}
                         </span>
                         <span style={{ fontSize: '13px', color: '#4B5563', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <FaClock size={11} color="#DC2626"/> {getTimeAgo(req.createdAt)}
+                          <FaClock size={11} color="#DC2626"/> {formatRequestDateTime(req.createdAt)}
                         </span>
                       </div>
 

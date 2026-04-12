@@ -176,6 +176,19 @@ const DonorDashboard = () => {
     return { label: 'Bronze', color: '#7f1d1d', icon: <FaMedal size={11}/> }
   }
 
+  const formatNotificationDateTime = (date) => {
+    const parsed = new Date(date)
+    if (Number.isNaN(parsed.getTime())) return 'Invalid date'
+
+    return parsed.toLocaleString('en-BD', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
   const activeBloodGroup = donorProfile?.bloodGroup || user?.bloodGroup
 
   const emergencyRequests = requests.filter(r =>
@@ -472,9 +485,14 @@ const DonorDashboard = () => {
                       flex: 1, background: '#f3f4f6', color: '#9ca3af',
                       border: '1px solid #e5e7eb', padding: '7px', borderRadius: '6px',
                       fontSize: '12px', fontWeight: '600', cursor: 'not-allowed',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px'
                     }}>
-                      <FaClock size={11}/> Eligible in {daysUntilEligible} day{daysUntilEligible !== 1 ? 's' : ''}
+                      <span style={{ color: '#111827', fontSize: '11px', fontWeight: '700' }}>
+                        আপনার হাতে আবার জেগে উঠুক একটি নতুন জীবন
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <FaClock size={11}/> Eligible in {daysUntilEligible} day{daysUntilEligible !== 1 ? 's' : ''}
+                      </span>
                     </button>
                   )}
                 </div>
@@ -535,7 +553,7 @@ const DonorDashboard = () => {
                     {n.message}
                   </div>
                   <div style={{ fontSize: '10px', color: '#4B5563', marginTop: '4px' }}>
-                    {new Date(n.createdAt).toLocaleDateString('en-BD')}
+                    {formatNotificationDateTime(n.createdAt)}
                   </div>
                 </div>
               </div>

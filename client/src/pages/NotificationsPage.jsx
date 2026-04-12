@@ -52,14 +52,17 @@ const NotificationsPage = () => {
     }
   }
 
-  const getTimeAgo = (date) => {
-    const mins = Math.floor((new Date() - new Date(date)) / 60000)
-    if (mins < 1)   return 'Just now'
-    if (mins < 60)  return `${mins} minute${mins > 1 ? 's' : ''} ago`
-    const hrs = Math.floor(mins / 60)
-    if (hrs < 24)   return `${hrs} hour${hrs > 1 ? 's' : ''} ago`
-    const days = Math.floor(hrs / 24)
-    return `${days} day${days > 1 ? 's' : ''} ago`
+  const formatNotificationDateTime = (date) => {
+    const parsed = new Date(date)
+    if (Number.isNaN(parsed.getTime())) return 'Invalid date'
+
+    return parsed.toLocaleString('en-BD', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   const getNotifIcon = (type) => {
@@ -290,7 +293,7 @@ const NotificationsPage = () => {
                         flexShrink: 0
                       }}>
                         <FaClock size={9} color="#DC2626"/>
-                        {getTimeAgo(notif.createdAt)}
+                        {formatNotificationDateTime(notif.createdAt)}
                       </div>
                     </div>
 
